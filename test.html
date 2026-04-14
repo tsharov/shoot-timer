@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            let intervalMs = 4000; // milliseconds
+            let secondIntervalMs = 5000; // milliseconds
+            let isPlaying = false;
+            let progressTimerId = null;
+            let progressStartTime = null;
+            let progressDurationMs = 0;
+
+            const beepSound = new Audio('beep.mp3');
+
+            function onKeyPress(event) {
+                switch (event.key) {
+                    case "ArrowDown":
+                        // Decrease
+                        decreaseInterval();
+                        break;
+                    case "ArrowUp":
+                        // Increase
+                        increateInterval();
+                        break;
+                    case "ArrowLeft":
+                        // Decrease second interval
+                        decreaseSecondInterval();
+                        break;
+                    case "ArrowRight":
+                        // Increase second interval
+                        increateSecondInterval();
+                        break;
+                    case "Enter":
+                        // Start playing
+                        startPlaying();
+                        break;
+                    case " ":
+                    case "Escape":
+                        // Stop playing
+                        stopPlaying();
+                        break;
+                    default:
+                        return;
+                }
+            }
+
+            function startPlaying() {
+                isPlaying = true;
+                displayInterval();
+            }
+
+            function stopPlaying() {
+                isPlaying = false;
+                stopProgressBar();
+                displayInterval();
+            }
+
+
+            async function  draw() {
+
+                displayInterval();
+                renderProgressBar(0);
+
+                while (true) {
+                    if (!isPlaying) { await sleep(1000); }
+
+                    if (isPlaying) { await sleep(secondIntervalMs); }
+                    if (isPlaying) {
+                        resetProgressBar();
+                        playBeep();
+                        startProgressBar(intervalMs);
+                    }
+
+                    if (isPlaying) {
+                        await sleep(intervalMs);
+                    }
+
+                    if (isPlaying) {
+                        stopProgressBar(true);
+                        playBeep();
+                    }
+                }
+            }
+
+            function playBeep() {
+                beepSound.play();
+            }
+
+            function increateInterval() {
+                intervalMs += 100;
+                displayInterval();
+            }
+
+            function decreaseInterval() {
+                intervalMs -= 100;
+                displayInterval();
+            }
+
+            function increateSecondInterval() {
+                secondIntervalMs += 500;
+                displayInterval();
+            }
+
+            function decreaseSecondInterval() {
+                secondIntervalMs -= 500;
+                displayInterval();
+            }
+
+            function displayInterval() {
+                const intervalSpan = document.getElementById("intervalSpan");
+                intervalSpan.textContent = `Intervals, ms: ${intervalMs}, ${secondIntervalMs}. Sound is ${isPlaying ? "ON" : "OFF"}.`;
+            }
+
+            function startProgressBar(durationMs) {
+                progressDurationMs = Math.max(durationMs, 0);
+                progressStartTime = performance.now();
+
+                if (progressDurationMs === 0) {
+                    renderProgressBar(1);
+                    return;
+                }
+
+                if (progressTimerId !== null) {
+                    clearInterval(progressTimerId);
+                }
+
+                const updateProgress = () => {
+                    if (!isPlaying || progressStartTime === null) {
+                        return;
+                    }
+
+                    const elapsedMs = performance.now() - progressStartTime;
+                    const progress = Math.min(elapsedMs / progressDurationMs, 1);
+
+                    renderProgressBar(progress);
+
+                    if (progress >= 1) {
+                        clearInterval(progressTimerId);
+                        progressTimerId = null;
+                    }
+                };
+
+                renderProgressBar(0);
+                updateProgress();
+                progressTimerId = setInterval(updateProgress, 200);
+            }
+
+            function stopProgressBar(fillCompleted = false) {
+                if (progressTimerId !== null) {
+                    clearInterval(progressTimerId);
+                    progressTimerId = null;
+                }
+
+                progressStartTime = null;
+                progressDurationMs = 0;
+                renderProgressBar(fillCompleted ? 1 : 0);
+            }
+
+            function resetProgressBar() {
+                stopProgressBar(false);
+            }
+
+            function renderProgressBar(progress) {
+                const progressBar = document.getElementById("progressBar");
+                const clampedProgress = Math.max(0, Math.min(progress, 1));
+                const completedPercent = `${clampedProgress * 100}%`;
+
+                progressBar.style.background = `linear-gradient(to right, #e67e22 0%, #e67e22 ${completedPercent}, #d5dbdb ${completedPercent}, #d5dbdb 100%)`;
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        </script>
+    </head>
+    <body onload="draw();" onkeydown="onKeyPress(event)" style="margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+        <span id="intervalSpan" style="font-size: 40px; text-align: center;"></span>
+        <span id="helpSpan" style="font-size: 30px; text-align: center;">Use Arrows to tune, Enter to start, Space or Escape to stop.</span>
+        <span id="progressBar" style="display: block; width: min(700px, 80vw); height: 32px; border: 2px solid #34495e; border-radius: 4px; background: linear-gradient(to right, #e67e22 0%, #e67e22 0%, #d5dbdb 0%, #d5dbdb 100%);"></span>
+    </body>
+</html>
