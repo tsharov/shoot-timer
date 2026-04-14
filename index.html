@@ -77,6 +77,7 @@
                     if (isPlaying) {
                         stopProgressBar(true);
                         playBeep();
+                        renderProgressBar(0);
                     }
                 }
             }
@@ -136,6 +137,8 @@
                     if (progress >= 1) {
                         clearInterval(progressTimerId);
                         progressTimerId = null;
+                        progressStartTime = null;
+                        progressDurationMs = 0;
                     }
                 };
 
