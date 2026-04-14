@@ -149,7 +149,7 @@
 
                     if (isPlaying) {
                         stopProgressBar(true);
-                        playBeep();
+                        await playBeepAndWait();
                         renderProgressBar(0);
                     }
                 }
@@ -197,6 +197,13 @@
 
             function playBeep() {
                 beepSound.play();
+            }
+
+            function playBeepAndWait() {
+                return new Promise(resolve => {
+                    beepSound.addEventListener('ended', resolve, { once: true });
+                    beepSound.play().catch(resolve);
+                });
             }
 
             function displayInterval() {
