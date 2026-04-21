@@ -15,6 +15,17 @@
                 user-select: none;
             }
 
+            #intervalSpan {
+                font-size: 36px;
+                text-align: center;
+            }
+
+            #helpSpan {
+                font-size: 20px;
+                text-align: center;
+                color: #666;
+            }
+
             .controls-row {
                 display: flex;
                 gap: 16px;
@@ -66,6 +77,32 @@
 
             .start-stop-btn.active {
                 background: #e74c3c;
+            }
+
+            @media (max-width: 600px) {
+                #intervalSpan {
+                    font-size: 30px;
+                }
+
+                #helpSpan {
+                    font-size: 16px;
+                }
+
+                .scroll-zone .label {
+                    font-size: 16px;
+                }
+
+                .scroll-zone .value {
+                    font-size: 24px;
+                }
+
+                .scroll-zone .hint {
+                    font-size: 18px;
+                }
+
+                .start-stop-btn {
+                    font-size: 28px;
+                }
             }
         </style>
         <script>
@@ -374,7 +411,7 @@
         </script>
     </head>
     <body onload="loadSettings(); draw();" onkeydown="onKeyPress(event)">
-        <span id="intervalSpan" style="font-size: 36px; text-align: center;"></span>
+        <span id="intervalSpan"></span>
         <div class="controls-row">
             <div id="intervalZone" class="scroll-zone">
                 <span class="label">Shot interval</span>
@@ -394,6 +431,6 @@
         </div>
         <button id="startStopBtn" class="start-stop-btn" onclick="togglePlaying()">Start</button>
         <span id="progressBar" style="display: block; width: min(700px, 80vw); height: 32px; border: 2px solid #34495e; border-radius: 4px; background: linear-gradient(to right, #e67e22 0%, #e67e22 0%, #d5dbdb 0%, #d5dbdb 100%);"></span>
-        <span id="helpSpan" style="font-size: 20px; text-align: center; color: #666;">Scroll/swipe zones to tune &bull; Arrows adjust times &bull; +/- adjusts set size</span>
+        <span id="helpSpan">Scroll/swipe zones to tune &bull; Arrows adjust times &bull; +/- adjusts set size</span>
     </body>
 </html>
