@@ -18,6 +18,8 @@
             .controls-row {
                 display: flex;
                 gap: 16px;
+                flex-wrap: wrap;
+                justify-content: center;
             }
 
             .scroll-zone {
@@ -69,10 +71,13 @@
         <script>
             let intervalMs = 4000;
             let secondIntervalMs = 5000;
+            let setSize = 40;
+            let completedRounds = 0;
             let isPlaying = false;
             let progressTimerId = null;
             let progressStartTime = null;
             let progressDurationMs = 0;
+            const settingsStorageKey = 'shoot-timer-settings';
 
             const beepSound = new Audio('beep.mp3');
 
@@ -90,6 +95,14 @@
                     case "ArrowRight":
                         adjustSecondInterval(500);
                         break;
+                    case "+":
+                    case "=":
+                        adjustSetSize(1);
+                        break;
+                    case "-":
+                    case "_":
+                        adjustSetSize(-1);
+                        break;
                     case "Enter":
                         startPlaying();
                         break;
@@ -104,16 +117,35 @@
 
             function adjustInterval(delta) {
                 intervalMs = Math.max(100, intervalMs + delta);
+                persistSettings();
                 displayInterval();
             }
 
             function adjustSecondInterval(delta) {
                 secondIntervalMs = Math.max(500, secondIntervalMs + delta);
+                persistSettings();
+                displayInterval();
+            }
+
+            function adjustSetSize(delta) {
+                setSize = Math.max(1, setSize + delta);
+
+                if (completedRounds > setSize) {
+                    completedRounds = setSize;
+                }
+
+                persistSettings();
                 displayInterval();
             }
 
             function startPlaying() {
+                if (isPlaying) {
+                    return;
+                }
+
+                completedRounds = 0;
                 isPlaying = true;
+                renderProgressBar(0);
                 displayInterval();
             }
 
@@ -151,6 +183,12 @@
                         stopProgressBar(true);
                         await playBeepAndWait();
                         renderProgressBar(0);
+                        completedRounds += 1;
+                        displayInterval();
+
+                        if (completedRounds >= setSize) {
+                            stopPlaying();
+                        }
                     }
                 }
             }
@@ -158,6 +196,7 @@
             function initTouchControls() {
                 const intervalZone = document.getElementById('intervalZone');
                 const secondZone = document.getElementById('secondZone');
+                const setZone = document.getElementById('setZone');
                 let touchStartY = null;
                 let activeZone = null;
 
@@ -171,7 +210,12 @@
                     adjustSecondInterval(e.deltaY > 0 ? -500 : 500);
                 }, { passive: false });
 
-                [intervalZone, secondZone].forEach(zone => {
+                setZone.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    adjustSetSize(e.deltaY > 0 ? -1 : 1);
+                }, { passive: false });
+
+                [intervalZone, secondZone, setZone].forEach(zone => {
                     zone.addEventListener('touchstart', (e) => {
                         touchStartY = e.touches[0].clientY;
                         activeZone = zone.id;
@@ -183,7 +227,8 @@
                         const deltaY = touchStartY - e.touches[0].clientY;
                         if (Math.abs(deltaY) >= 15) {
                             if (activeZone === 'intervalZone') adjustInterval(deltaY > 0 ? 100 : -100);
-                            else adjustSecondInterval(deltaY > 0 ? 500 : -500);
+                            else if (activeZone === 'secondZone') adjustSecondInterval(deltaY > 0 ? 500 : -500);
+                            else adjustSetSize(deltaY > 0 ? 1 : -1);
                             touchStartY = e.touches[0].clientY;
                         }
                     }, { passive: false });
@@ -208,7 +253,8 @@
 
             function displayInterval() {
                 const intervalSpan = document.getElementById("intervalSpan");
-                intervalSpan.textContent = `Sound is ${isPlaying ? "ON" : "OFF"}.`;
+                const roundsLeft = Math.max(setSize - completedRounds, 0);
+                intervalSpan.textContent = `Sound is ${isPlaying ? "ON" : "OFF"}. Round ${completedRounds}/${setSize} (${roundsLeft} left).`;
 
                 const intervalVal = document.getElementById("intervalVal");
                 if (intervalVal) intervalVal.textContent = `${intervalMs} ms`;
@@ -216,10 +262,50 @@
                 const secondVal = document.getElementById("secondVal");
                 if (secondVal) secondVal.textContent = `${secondIntervalMs} ms`;
 
+                const setVal = document.getElementById("setVal");
+                if (setVal) setVal.textContent = `${setSize} rounds`;
+
                 const btn = document.getElementById("startStopBtn");
                 if (btn) {
                     btn.textContent = isPlaying ? "Stop" : "Start";
                     btn.classList.toggle("active", isPlaying);
+                }
+            }
+
+            function loadSettings() {
+                try {
+                    const storedSettings = localStorage.getItem(settingsStorageKey);
+                    if (!storedSettings) {
+                        return;
+                    }
+
+                    const parsedSettings = JSON.parse(storedSettings);
+
+                    if (Number.isFinite(parsedSettings.intervalMs)) {
+                        intervalMs = Math.max(100, parsedSettings.intervalMs);
+                    }
+
+                    if (Number.isFinite(parsedSettings.secondIntervalMs)) {
+                        secondIntervalMs = Math.max(500, parsedSettings.secondIntervalMs);
+                    }
+
+                    if (Number.isFinite(parsedSettings.setSize)) {
+                        setSize = Math.max(1, parsedSettings.setSize);
+                    }
+                } catch (error) {
+                    console.warn('Failed to load saved settings.', error);
+                }
+            }
+
+            function persistSettings() {
+                try {
+                    localStorage.setItem(settingsStorageKey, JSON.stringify({
+                        intervalMs,
+                        secondIntervalMs,
+                        setSize,
+                    }));
+                } catch (error) {
+                    console.warn('Failed to save settings.', error);
                 }
             }
 
@@ -287,7 +373,7 @@
             }
         </script>
     </head>
-    <body onload="draw();" onkeydown="onKeyPress(event)">
+    <body onload="loadSettings(); draw();" onkeydown="onKeyPress(event)">
         <span id="intervalSpan" style="font-size: 36px; text-align: center;"></span>
         <div class="controls-row">
             <div id="intervalZone" class="scroll-zone">
@@ -300,9 +386,14 @@
                 <span id="secondVal" class="value">5000 ms</span>
                 <span class="hint">↕</span>
             </div>
+            <div id="setZone" class="scroll-zone">
+                <span class="label">Set size</span>
+                <span id="setVal" class="value">40 rounds</span>
+                <span class="hint">↕</span>
+            </div>
         </div>
         <button id="startStopBtn" class="start-stop-btn" onclick="togglePlaying()">Start</button>
         <span id="progressBar" style="display: block; width: min(700px, 80vw); height: 32px; border: 2px solid #34495e; border-radius: 4px; background: linear-gradient(to right, #e67e22 0%, #e67e22 0%, #d5dbdb 0%, #d5dbdb 100%);"></span>
-        <span id="helpSpan" style="font-size: 20px; text-align: center; color: #666;">Scroll/swipe zones to tune &bull; Arrows &amp; Enter on keyboard</span>
+        <span id="helpSpan" style="font-size: 20px; text-align: center; color: #666;">Scroll/swipe zones to tune &bull; Arrows adjust times &bull; +/- adjusts set size</span>
     </body>
 </html>
