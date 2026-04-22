@@ -16,8 +16,20 @@
             }
 
             #intervalSpan {
-                font-size: 36px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
                 text-align: center;
+            }
+
+            #statusSpan {
+                font-size: 36px;
+            }
+
+            #roundSpan {
+                font-size: 28px;
+                color: #555;
             }
 
             #helpSpan {
@@ -80,28 +92,39 @@
             }
 
             @media (max-width: 600px) {
-                #intervalSpan {
-                    font-size: 30px;
+                #statusSpan {
+                    font-size: 28px;
+                }
+
+                #roundSpan {
+                    font-size: 20px;
                 }
 
                 #helpSpan {
                     font-size: 16px;
                 }
 
+                .scroll-zone {
+                    width: 130px;
+                    height: 130px;
+                }
+
                 .scroll-zone .label {
-                    font-size: 16px;
+                    font-size: 14px;
                 }
 
                 .scroll-zone .value {
-                    font-size: 24px;
+                    font-size: 22px;
                 }
 
                 .scroll-zone .hint {
-                    font-size: 18px;
+                    font-size: 16px;
                 }
 
                 .start-stop-btn {
                     font-size: 28px;
+                    padding: 14px 36px;
+                    min-width: 180px;
                 }
             }
         </style>
@@ -289,9 +312,11 @@
             }
 
             function displayInterval() {
-                const intervalSpan = document.getElementById("intervalSpan");
                 const roundsLeft = Math.max(setSize - completedRounds, 0);
-                intervalSpan.textContent = `Sound is ${isPlaying ? "ON" : "OFF"}. Round ${completedRounds}/${setSize} (${roundsLeft} left).`;
+                const statusSpan = document.getElementById("statusSpan");
+                if (statusSpan) statusSpan.textContent = `Sound is ${isPlaying ? "ON" : "OFF"}.`;
+                const roundSpan = document.getElementById("roundSpan");
+                if (roundSpan) roundSpan.textContent = `Round ${completedRounds}/${setSize} (${roundsLeft} left).`;
 
                 const intervalVal = document.getElementById("intervalVal");
                 if (intervalVal) intervalVal.textContent = `${intervalMs} ms`;
@@ -411,7 +436,10 @@
         </script>
     </head>
     <body onload="loadSettings(); draw();" onkeydown="onKeyPress(event)">
-        <span id="intervalSpan"></span>
+        <div id="intervalSpan">
+            <span id="statusSpan"></span>
+            <span id="roundSpan"></span>
+        </div>
         <div class="controls-row">
             <div id="intervalZone" class="scroll-zone">
                 <span class="label">Shot interval</span>
